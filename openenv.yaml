@@ -1,0 +1,22 @@
+name: datacleanenv
+version: "1.0.0"
+description: >
+  A real-world RL environment where an AI agent learns to clean messy datasets.
+  Tasks include fixing missing values, wrong formats, duplicates, type errors,
+  and outliers across 3 difficulty levels (easy / medium / hard).
+author: bunnyreddy23231
+tags:
+  - openenv
+  - data-cleaning
+  - reinforcement-learning
+  - real-world
+tasks:
+  - name: easy
+    description: Fix missing values and remove duplicates
+    max_steps: 30
+  - name: medium
+    description: Fix missing values, duplicates, format issues, and type errors
+    max_steps: 50
+  - name: hard
+    description: Fix all issues including outliers, near-duplicates, and value inconsistencies
+    max_steps: 80

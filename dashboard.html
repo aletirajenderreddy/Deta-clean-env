@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataCleanEnv — Interactive Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0d14;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --surface3: #1f2d42;
+    --border: rgba(255,255,255,0.07);
+    --purple: #7c3aed;
+    --purple-light: #a78bfa;
+    --blue: #3b82f6;
+    --blue-light: #60a5fa;
+    --cyan: #06b6d4;
+    --green: #10b981;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --text: #f1f5f9;
+    --text-dim: #94a3b8;
+    --text-muted: #475569;
+    --glow-purple: 0 0 20px rgba(124,58,237,0.3);
+    --glow-blue: 0 0 20px rgba(59,130,246,0.3);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; overflow-x: hidden; }
+
+  /* Animated background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(59,130,246,0.06) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── TOP NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,13,20,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 20px; height: 60px;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 18px; font-weight: 800;
+    background: linear-gradient(135deg, var(--purple-light), var(--blue-light));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .logo-icon { font-size: 22px; }
+  nav .spacer { flex: 1; }
+  .server-status {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--text-muted); }
+  .dot.online { background: var(--green); box-shadow: 0 0 8px var(--green); animation: pulse-dot 2s infinite; }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  /* ── MAIN LAYOUT ── */
+  .layout {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 16px;
+    padding: 16px 20px;
+    max-width: 1600px;
+    margin: 0 auto;
+    min-height: calc(100vh - 60px);
+    position: relative; z-index: 1;
+  }
+
+  /* ── CONTROL PANEL ── */
+  .control-panel {
+    grid-row: 1 / 3;
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(124,58,237,0.3); }
+  .card-title {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  /* Task Level */
+  .task-buttons { display: flex; gap: 8px; }
+  .task-btn {
+    flex: 1; padding: 10px 8px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface2);
+    color: var(--text-dim); font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .task-btn:hover { border-color: var(--purple); color: var(--purple-light); }
+  .task-btn.active { background: linear-gradient(135deg, rgba(124,58,237,0.25), rgba(59,130,246,0.15)); border-color: var(--purple); color: var(--purple-light); box-shadow: var(--glow-purple); }
+  .task-btn .level-icon { display: block; font-size: 18px; margin-bottom: 4px; }
+
+  /* Action Type */
+  .action-select-grid { display: flex; flex-direction: column; gap: 8px; }
+  .action-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--surface2);
+    cursor: pointer; transition: all 0.2s;
+  }
+  .action-option:hover { border-color: var(--blue); background: rgba(59,130,246,0.08); }
+  .action-option.selected { border-color: var(--blue); background: rgba(59,130,246,0.12); }
+  .action-option .action-icon { font-size: 16px; width: 24px; text-align: center; }
+  .action-option .action-info { flex: 1; }
+  .action-option .action-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .action-option .action-desc { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .action-option input[type=radio] { accent-color: var(--blue); width: 14px; height: 14px; }
+
+  /* Form fields */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 500; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 9px 12px; border-radius: 8px;
+    background: var(--surface2); border: 1px solid var(--border);
+    color: var(--text); font-family: 'Inter', sans-serif; font-size: 13px;
+    transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--purple); }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field select option { background: var(--surface2); }
+
+  /* Buttons */
+  .btn {
+    width: 100%; padding: 12px; border-radius: 10px;
+    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600;
+    cursor: pointer; border: none; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--purple), var(--blue));
+    color: white; box-shadow: var(--glow-purple);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 0 30px rgba(124,58,237,0.4); }
+  .btn-secondary {
+    background: var(--surface2); color: var(--text); border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { border-color: var(--purple); color: var(--purple-light); }
+  .btn-green { background: rgba(16,185,129,0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .btn-green:hover { background: rgba(16,185,129,0.25); box-shadow: 0 0 20px rgba(16,185,129,0.2); }
+  .btn-danger { background: rgba(239,68,68,0.12); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .btn-row { display: flex; gap: 8px; margin-top: 8px; }
+  .btn-row .btn { flex: 1; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px 16px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: all 0.3s;
+  }
+  .stat-card.highlight { border-color: rgba(124,58,237,0.4); box-shadow: var(--glow-purple); }
+  .stat-label { font-size: 11px; color: var(--text-muted); font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; }
+  .stat-value { font-size: 26px; font-weight: 800; letter-spacing: -1px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.purple { background: linear-gradient(135deg, var(--purple-light), var(--blue-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .stat-sub { font-size: 11px; color: var(--text-muted); }
+
+  /* ── DATA TABLE ── */
+  .table-wrap {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; overflow: hidden;
+  }
+  .table-header {
+    padding: 14px 18px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+    background: rgba(255,255,255,0.02);
+  }
+  .table-title { font-size: 13px; font-weight: 600; flex: 1; }
+  .badge {
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-purple { background: rgba(124,58,237,0.15); color: var(--purple-light); border: 1px solid rgba(124,58,237,0.3); }
+  .badge-green { background: rgba(16,185,129,0.1); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-yellow { background: rgba(245,158,11,0.1); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+  .table-scroll { overflow-x: auto; max-height: 400px; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-muted); background: rgba(255,255,255,0.02); border-bottom: 1px solid var(--border); position: sticky; top: 0; white-space: nowrap; }
+  td { padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.03); font-family: 'JetBrains Mono', monospace; white-space: nowrap; }
+  tr:hover td { background: rgba(255,255,255,0.03); }
+  tr.selected-row td { background: rgba(59,130,246,0.08); }
+
+  /* Issue cell highlights */
+  td.issue-missing { background: rgba(239,68,68,0.12); color: #fca5a5; border-left: 2px solid var(--red); }
+  td.issue-format { background: rgba(245,158,11,0.1); color: #fcd34d; border-left: 2px solid var(--yellow); }
+  td.issue-type { background: rgba(249,115,22,0.1); color: #fdba74; border-left: 2px solid #f97316; }
+  td.issue-duplicate-row td { background: rgba(139,92,246,0.08); }
+  td.issue-outlier { background: rgba(236,72,153,0.1); color: #f9a8d4; border-left: 2px solid #ec4899; }
+  td.issue-inconsistent { background: rgba(6,182,212,0.08); color: #67e8f9; border-left: 2px solid var(--cyan); }
+  td.issue-ok { color: var(--text-dim); }
+
+  .row-index-col { color: var(--text-muted) !important; font-size: 10px; width: 36px; text-align: right; }
+
+  /* ── ISSUE CHIPS ── */
+  .issue-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip {
+    display: flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 500;
+  }
+  .chip-red { background: rgba(239,68,68,0.12); color: #fca5a5; border: 1px solid rgba(239,68,68,0.2); }
+  .chip-yellow { background: rgba(245,158,11,0.1); color: #fcd34d; border: 1px solid rgba(245,158,11,0.2); }
+  .chip-purple { background: rgba(139,92,246,0.12); color: #c4b5fd; border: 1px solid rgba(139,92,246,0.2); }
+  .chip-orange { background: rgba(249,115,22,0.1); color: #fdba74; border: 1px solid rgba(249,115,22,0.2); }
+  .chip-cyan { background: rgba(6,182,212,0.08); color: #67e8f9; border: 1px solid rgba(6,182,212,0.2); }
+  .chip-pink { background: rgba(236,72,153,0.1); color: #f9a8d4; border: 1px solid rgba(236,72,153,0.2); }
+  .chip-count { font-weight: 700; }
+
+  /* ── LOG ── */
+  .log-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; }
+  .log-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .log-body { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 12px 16px; max-height: 220px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+  .log-entry { display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .log-time { color: var(--text-muted); min-width: 70px; flex-shrink: 0; }
+  .log-msg { flex: 1; }
+  .log-msg.success { color: var(--green); }
+  .log-msg.warn { color: var(--yellow); }
+  .log-msg.error { color: var(--red); }
+  .log-msg.info { color: var(--blue-light); }
+  .log-msg.reward-pos { color: var(--green); }
+  .log-msg.reward-neg { color: var(--red); }
+
+  /* ── REWARD BAR ── */
+  .score-section { margin-top: 8px; }
+  .score-label { font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
+  .score-bar { height: 6px; background: rgba(255,255,255,0.06); border-radius: 20px; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, var(--purple), var(--blue), var(--cyan)); transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+  /* ── EMPTY STATE ── */
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+  .empty-title { font-size: 16px; font-weight: 600; color: var(--text-dim); margin-bottom: 8px; }
+  .empty-sub { font-size: 13px; line-height: 1.6; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500;
+    backdrop-filter: blur(20px); opacity: 0; transform: translateY(8px);
+    transition: all 0.3s; pointer-events: none;
+    border: 1px solid var(--border); background: rgba(17,24,39,0.95);
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.ok { border-color: rgba(16,185,129,0.4); color: var(--green); }
+  #toast.err { border-color: rgba(239,68,68,0.4); color: var(--red); }
+  #toast.info2 { border-color: rgba(59,130,246,0.4); color: var(--blue-light); }
+
+  /* Loading spinner */
+  .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.15); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  /* Done overlay */
+  .done-banner {
+    background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.1));
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 12px; padding: 16px; margin-bottom: 12px;
+    text-align: center; animation: fadeIn 0.5s ease;
+  }
+  .done-banner h3 { color: var(--green); font-size: 16px; margin-bottom: 4px; }
+  .done-banner p { color: var(--text-dim); font-size: 13px; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .auto-speed { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); }
+  .auto-speed input { width: 80px; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <span class="logo-icon">🧹</span>
+    DataCleanEnv
+  </div>
+  <span style="font-size:12px;color:var(--text-muted);background:rgba(124,58,237,0.1);border:1px solid rgba(124,58,237,0.2);padding:3px 10px;border-radius:20px;">
+    Meta PyTorch Hackathon
+  </span>
+  <div class="spacer"></div>
+  <div class="server-status">
+    <div class="dot" id="serverDot"></div>
+    <span id="serverLabel">Connecting…</span>
+  </div>
+  <a href="http://127.0.0.1:8000/docs" target="_blank" style="text-decoration:none;font-size:12px;color:var(--blue-light);border:1px solid rgba(59,130,246,0.25);padding:4px 12px;border-radius:8px;">
+    API Docs ↗
+  </a>
+</nav>
+
+<div class="layout">
+
+  <!-- ═══════════════ LEFT PANEL ═══════════════ -->
+  <aside class="control-panel">
+
+    <!-- Task Level -->
+    <div class="card">
+      <div class="card-title">Task Level</div>
+      <div class="task-buttons">
+        <button class="task-btn active" onclick="selectLevel('easy')" id="lvl-easy">
+          <span class="level-icon">🌱</span> Easy
+        </button>
+        <button class="task-btn" onclick="selectLevel('medium')" id="lvl-medium">
+          <span class="level-icon">🔥</span> Medium
+        </button>
+        <button class="task-btn" onclick="selectLevel('hard')" id="lvl-hard">
+          <span class="level-icon">💀</span> Hard
+        </button>
+      </div>
+      <div style="margin-top:14px;">
+        <button class="btn btn-primary" onclick="resetEnv()" id="resetBtn">
+          <span>▶ Start / Reset Episode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Manual Action -->
+    <div class="card">
+      <div class="card-title">Apply Manual Action</div>
+      <div class="action-select-grid">
+        <label class="action-option selected" id="opt-fix_missing">
+          <input type="radio" name="action_type" value="fix_missing" checked onchange="selectAction(this)">
+          <span class="action-icon">🔧</span>
+          <div class="action-info">
+            <div class="action-name">fix_missing</div>
+            <div class="action-desc">Fill in a missing value</div>
+          </div>
+        </label>
+        <label class="action-option" id="opt-fix_format">
+          <input type="radio" name="action_type" value="fix_format" onchange="selectAction(this)">
+          <span class="action-icon">📅</span>
+          <div class="action-info">
+            <div class="action-name">fix_format</div>
+            <div class="action-desc">Correct wrong date/phone format</div>
+          </div>
+        </label>
+        <label class="action-option" id="opt-remove_duplicate">
+          <input type="radio" name="action_type" value="remove_duplicate" onchange="selectAction(this)">
+          <span class="action-icon">🗑</span>
+          <div class="action-info">
+            <div class="action-name">remove_duplicate</div>
+            <div class="action-desc">Delete a duplicate row</div>
+          </div>
+        </label>
+        <label class="action-option" id="opt-fix_type">
+          <input type="radio" name="action_type" value="fix_type" onchange="selectAction(this)">
+          <span class="action-icon">🔢</span>
+          <div class="action-info">
+            <div class="action-name">fix_type</div>
+            <div class="action-desc">Convert wrong data type</div>
+          </div>
+        </label>
+        <label class="action-option" id="opt-fix_outlier">
+          <input type="radio" name="action_type" value="fix_outlier" onchange="selectAction(this)">
+          <span class="action-icon">📊</span>
+          <div class="action-info">
+            <div class="action-name">fix_outlier</div>
+            <div class="action-desc">Replace outlier value</div>
+          </div>
+        </label>
+        <label class="action-option" id="opt-no_op">
+          <input type="radio" name="action_type" value="no_op" onchange="selectAction(this)">
+          <span class="action-icon">⏭</span>
+          <div class="action-info">
+            <div class="action-name">no_op</div>
+            <div class="action-desc">Skip this step</div>
+          </div>
+        </label>
+      </div>
+      <div style="margin-top:14px;">
+        <div class="field">
+          <label>Row Index <span style="font-size:10px;color:var(--text-muted);">(click table row to fill)</span></label>
+          <input type="number" id="rowIndex" value="0" min="-1">
+        </div>
+        <div class="field">
+          <label>Column Name</label>
+          <select id="colName">
+            <option value="id">id</option>
+            <option value="name">name</option>
+            <option value="age" selected>age</option>
+            <option value="email">email</option>
+            <option value="phone">phone</option>
+            <option value="salary">salary</option>
+            <option value="hire_date">hire_date</option>
+            <option value="department">department</option>
+            <option value="is_active">is_active</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>New Value <span style="font-size:10px;color:var(--text-muted);">(leave blank for no_op/remove_duplicate)</span></label>
+          <input type="text" id="newValue" placeholder="e.g. 30, john.doe@example.com, 2023-01-15">
+        </div>
+        <div class="field">
+          <label>Reason</label>
+          <textarea id="reason" placeholder="Why are you making this fix?">Manual fix from dashboard</textarea>
+        </div>
+        <button class="btn btn-primary" onclick="applyAction()" id="stepBtn" disabled>
+          ⚡ Apply Action
+        </button>
+      </div>
+    </div>
+
+    <!-- Auto Agent -->
+    <div class="card">
+      <div class="card-title">🤖 Auto Rule-Based Agent</div>
+      <p style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">
+        Let the built-in rule-based agent automatically clean the dataset step by step.
+      </p>
+      <div class="auto-speed">
+        <span>Speed:</span>
+        <input type="range" id="autoDelay" min="100" max="2000" value="600" style="flex:1;">
+        <span id="speedLabel">0.6s</span>
+      </div>
+      <div class="btn-row" style="margin-top:12px;">
+        <button class="btn btn-green" onclick="startAuto()" id="autoBtn" disabled>▶ Run Agent</button>
+        <button class="btn btn-danger" onclick="stopAuto()" id="stopBtn" disabled>⏹ Stop</button>
+      </div>
+    </div>
+
+    <!-- Score -->
+    <div class="card">
+      <div class="card-title">Episode Score</div>
+      <div style="text-align:center;padding:10px 0;">
+        <div style="font-size:42px;font-weight:800;background:linear-gradient(135deg,var(--purple-light),var(--blue-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;" id="scoreDisplay">—</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">cumulative score</div>
+      </div>
+      <div class="score-section">
+        <div class="score-label">Progress</div>
+        <div class="score-bar"><div class="score-fill" id="scoreFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ═══════════════ RIGHT TOP — STATS ═══════════════ -->
+  <div>
+    <div id="doneBanner" style="display:none;"></div>
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card">
+        <div class="stat-label">Total Issues</div>
+        <div class="stat-value red" id="statTotal">—</div>
+        <div class="stat-sub">at episode start</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Remaining</div>
+        <div class="stat-value yellow" id="statRemaining">—</div>
+        <div class="stat-sub">still need fixing</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Fixed</div>
+        <div class="stat-value green" id="statFixed">—</div>
+        <div class="stat-sub">issues resolved</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-label">Steps</div>
+        <div class="stat-value purple" id="statSteps">—</div>
+        <div class="stat-sub">of <span id="statMaxSteps">—</span> max</div>
+      </div>
+    </div>
+
+    <!-- Issue chips -->
+    <div class="issue-chips" id="issueChips"></div>
+
+    <!-- Dataset Table -->
+    <div class="table-wrap" style="margin-top:14px;">
+      <div class="table-header">
+        <span class="table-title">📋 Dataset — click a row to select it</span>
+        <span class="badge badge-purple" id="tableBadge">not started</span>
+      </div>
+      <div class="table-scroll" id="tableWrap">
+        <div class="empty-state">
+          <div class="empty-icon">🗄️</div>
+          <div class="empty-title">No data yet</div>
+          <div class="empty-sub">Select a task level and click<br><strong>Start / Reset Episode</strong> to load a messy dataset.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Log -->
+    <div class="log-wrap" style="margin-top:14px;">
+      <div class="log-header">
+        📝 Action Log
+        <button onclick="clearLog()" style="margin-left:auto;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;">Clear</button>
+      </div>
+      <div class="log-body" id="logBody">
+        <div class="log-entry"><span class="log-time">—</span><span class="log-msg info">Waiting for episode to start…</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API = 'http://127.0.0.1:8000';
+let state = { level: 'easy', started: false, done: false, step: 0, maxSteps: 30, dataset: [], issues: {} };
+let autoTimer = null;
+
+// ── Speed slider ──
+document.getElementById('autoDelay').addEventListener('input', e => {
+  document.getElementById('speedLabel').textContent = (e.target.value/1000).toFixed(1)+'s';
+});
+
+// ── Server health ──
+async function checkServer() {
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(3000) });
+    const data = await r.json();
+    if (data.status === 'healthy') {
+      document.getElementById('serverDot').className = 'dot online';
+      document.getElementById('serverLabel').textContent = 'Server online';
+    }
+  } catch {
+    document.getElementById('serverDot').className = 'dot';
+    document.getElementById('serverLabel').textContent = 'Server offline';
+    toast('Server not reachable at '+API, 'err');
+  }
+}
+checkServer();
+setInterval(checkServer, 5000);
+
+// ── Level select ──
+function selectLevel(l) {
+  state.level = l;
+  ['easy','medium','hard'].forEach(x => document.getElementById('lvl-'+x).classList.remove('active'));
+  document.getElementById('lvl-'+l).classList.add('active');
+}
+
+// ── Action type ──
+function selectAction(radio) {
+  document.querySelectorAll('.action-option').forEach(el => el.classList.remove('selected'));
+  radio.closest('.action-option').classList.add('selected');
+}
+
+// ── Reset / Start ──
+async function resetEnv() {
+  stopAuto();
+  setLoading('resetBtn', true);
+  try {
+    const r = await fetch(`${API}/reset`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ task_level: state.level })
+    });
+    const data = await r.json();
+    const obs = buildObs(data);
+    state.started = true; state.done = false; state.step = 0;
+    document.getElementById('doneBanner').style.display = 'none';
+    document.getElementById('autoBtn').disabled = false;
+    document.getElementById('stepBtn').disabled = false;
+    updateUI(obs, null);
+    addLog('Episode started — '+state.level+' task ('+obs.total_issues_original+' issues)', 'info');
+    toast('Episode started! '+obs.total_issues_original+' issues detected.', 'ok');
+  } catch(e) {
+    toast('Reset failed: '+e.message, 'err');
+    addLog('Reset error: '+e.message, 'error');
+  } finally { setLoading('resetBtn', false); }
+}
+
+function buildObs(data) {
+  const obs = data.observation || data;
+  obs.done = data.done ?? obs.done ?? false;
+  obs.reward = data.reward ?? obs.reward ?? null;
+  return obs;
+}
+
+// ── Apply manual action ──
+async function applyAction() {
+  if (!state.started || state.done) return;
+  const actionType = document.querySelector('input[name=action_type]:checked').value;
+  const rowIndex = parseInt(document.getElementById('rowIndex').value);
+  const colName = document.getElementById('colName').value;
+  const newVal = document.getElementById('newValue').value.trim() || null;
+  const reason = document.getElementById('reason').value.trim() || 'Manual fix';
+  await doStep({ action_type: actionType, row_index: rowIndex, column_name: colName, new_value: newVal, reason });
+}
+
+async function doStep(actionObj) {
+  if (state.done) return;
+  setLoading('stepBtn', true);
+  try {
+    const r = await fetch(`${API}/step`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ action: actionObj })
+    });
+    if (!r.ok) { const e=await r.json(); throw new Error(JSON.stringify(e.detail||e)); }
+    const data = await r.json();
+    const obs = buildObs(data);
+    state.step++;
+    state.done = obs.done || data.done;
+    updateUI(obs, data.reward ?? obs.reward);
+    const rewardVal = data.reward ?? obs.reward ?? 0;
+    const cl = rewardVal > 0 ? 'reward-pos' : (rewardVal < 0 ? 'reward-neg' : '');
+    addLog(`[${state.step}] ${actionObj.action_type} on ${actionObj.column_name}[${actionObj.row_index}] → reward ${rewardVal >= 0 ? '+':''}${parseFloat(rewardVal).toFixed(4)} | ${obs.message}`, cl || 'info');
+    if (state.done) {
+      stopAuto();
+      showDone(obs);
+    }
+  } catch(e) {
+    addLog('Step error: '+e.message, 'error');
+    toast('Step failed: '+e.message, 'err');
+  } finally { setLoading('stepBtn', false); }
+}
+
+// ── Rule-based auto agent ──
+const RULE_ACTIONS = [
+  // Fix missing age
+  obs => {
+    for (let i=0;i<obs.dataset.length;i++) {
+      const row = obs.dataset[i];
+      if (row.age === null || row.age === '') {
+        const ages = obs.dataset.filter(r=>typeof r.age==='number').map(r=>r.age);
+        const med = ages.length ? Math.round(ages.sort()[Math.floor(ages.length/2)]) : 30;
+        return { action_type:'fix_missing', row_index:i, column_name:'age', new_value:String(med), reason:'Fill missing age with median' };
+      }
+    }
+  },
+  // Fix missing email
+  obs => {
+    for (let i=0;i<obs.dataset.length;i++) {
+      const row = obs.dataset[i];
+      if ((row.email === null || row.email === '') && row.name) {
+        const parts = row.name.toLowerCase().split(' ');
+        const email = (parts[0]+'.'+(parts[parts.length-1]||parts[0]))+'@example.com';
+        return { action_type:'fix_missing', row_index:i, column_name:'email', new_value:email, reason:'Reconstruct email from name' };
+      }
+    }
+  },
+  // Fix duplicate
+  obs => {
+    const seen = {};
+    for (let i=0;i<obs.dataset.length;i++) {
+      const k = JSON.stringify(obs.dataset[i]);
+      if (seen[k] !== undefined) return { action_type:'remove_duplicate', row_index:i, column_name:'id', new_value:null, reason:'Remove exact duplicate row' };
+      seen[k] = i;
+    }
+  },
+  // Fix date format
+  obs => {
+    for (let i=0;i<obs.dataset.length;i++) {
+      const d = obs.dataset[i].hire_date;
+      if (typeof d === 'string' && d.includes('/')) {
+        const parts = d.split('/');
+        const fixed = parts.length === 3 ? `${parts[0]}-${parts[1].padStart(2,'0')}-${parts[2].padStart(2,'0')}` : d;
+        return { action_type:'fix_format', row_index:i, column_name:'hire_date', new_value:fixed, reason:'Normalize date to YYYY-MM-DD' };
+      }
+    }
+  },
+  // Fix type: age stored as string
+  obs => {
+    for (let i=0;i<obs.dataset.length;i++) {
+      const a = obs.dataset[i].age;
+      if (typeof a === 'string' && a !== '' && isNaN(parseInt(a)) === false && typeof parseInt(a) === 'number') {
+        return { action_type:'fix_type', row_index:i, column_name:'age', new_value:String(parseInt(a)), reason:'Convert string age to int' };
+      }
+    }
+  },
+  // Fix missing phone
+  obs => {
+    for (let i=0;i<obs.dataset.length;i++) {
+      if (obs.dataset[i].phone === null || obs.dataset[i].phone === '') {
+        return { action_type:'fix_missing', row_index:i, column_name:'phone', new_value:'000-000-0000', reason:'Fill missing phone placeholder' };
+      }
+    }
+  },
+  // Fix missing salary
+  obs => {
+    for (let i=0;i<obs.dataset.length;i++) {
+      if (obs.dataset[i].salary === null || obs.dataset[i].salary === '') {
+        const sals = obs.dataset.filter(r=>typeof r.salary==='number'&&r.salary>0).map(r=>r.salary);
+        const avg = sals.length ? Math.round(sals.reduce((a,b)=>a+b,0)/sals.length) : 70000;
+        return { action_type:'fix_missing', row_index:i, column_name:'salary', new_value:String(avg), reason:'Fill missing salary with average' };
+      }
+    }
+  },
+];
+
+function pickAutoAction(obs) {
+  for (const rule of RULE_ACTIONS) {
+    const a = rule(obs);
+    if (a) return a;
+  }
+  return { action_type:'no_op', row_index:-1, column_name:'id', new_value:null, reason:'No more known issues' };
+}
+
+let lastObs = null;
+async function autoStep() {
+  if (!state.started || state.done || !lastObs) { stopAuto(); return; }
+  const action = pickAutoAction(lastObs);
+  await doStep(action);
+}
+
+function startAuto() {
+  if (!state.started || state.done) return;
+  const delay = parseInt(document.getElementById('autoDelay').value);
+  document.getElementById('autoBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  addLog('Auto agent started', 'info');
+  autoTimer = setInterval(async () => {
+    if (state.done) { stopAuto(); return; }
+    await autoStep();
+  }, delay);
+}
+
+function stopAuto() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer = null; }
+  document.getElementById('autoBtn').disabled = !state.started || state.done;
+  document.getElementById('stopBtn').disabled = true;
+}
+
+// ── UI Update ──
+function updateUI(obs, reward) {
+  lastObs = obs;
+  state.dataset = obs.dataset;
+  // Stats
+  const remaining = Object.values(obs.issues_remaining || {}).reduce((a,b)=>a+b,0);
+  const fixed = Object.values(obs.issues_fixed || {}).reduce((a,b)=>a+b,0);
+  document.getElementById('statTotal').textContent = obs.total_issues_original || '—';
+  document.getElementById('statRemaining').textContent = remaining;
+  document.getElementById('statFixed').textContent = fixed;
+  document.getElementById('statSteps').textContent = obs.current_step || 0;
+  document.getElementById('statMaxSteps').textContent = obs.max_steps || '—';
+
+  // Score
+  const pct = obs.total_issues_original > 0 ? Math.round((fixed / obs.total_issues_original) * 100) : 0;
+  document.getElementById('scoreDisplay').textContent = pct+'%';
+  document.getElementById('scoreFill').style.width = pct+'%';
+
+  // Issue chips
+  const chips = document.getElementById('issueChips');
+  chips.innerHTML = '';
+  const chipMap = {
+    missing_values: ['chip-red','🔴'],
+    duplicates: ['chip-purple','♊'],
+    wrong_format: ['chip-yellow','⚠️'],
+    wrong_type: ['chip-orange','🔢'],
+    invalid_email: ['chip-pink','📧'],
+    outliers: ['chip-pink','📊'],
+    near_duplicates: ['chip-cyan','🔁'],
+    inconsistent_values: ['chip-cyan','⚡'],
+  };
+  Object.entries(obs.issues_remaining || {}).forEach(([k,v]) => {
+    if (v > 0) {
+      const [c,ico] = chipMap[k] || ['chip-yellow','❓'];
+      chips.innerHTML += `<span class="chip ${c}">${ico} ${k.replace(/_/g,' ')} <span class="chip-count">${v}</span></span>`;
+    }
+  });
+  if (!chips.innerHTML) chips.innerHTML = '<span class="chip chip-red" style="background:rgba(16,185,129,0.1);color:var(--green);border-color:rgba(16,185,129,0.3);">✅ All issues resolved</span>';
+
+  // Table badge
+  document.getElementById('tableBadge').textContent = `${obs.task_level || state.level} • step ${obs.current_step||0}/${obs.max_steps||'?'}`;
+
+  // Render table
+  renderTable(obs.dataset, obs.issues_remaining || {}, obs.column_schema || {});
+}
+
+function renderTable(dataset, issuesRem, schema) {
+  if (!dataset || !dataset.length) return;
+  const cols = ['id','name','age','email','phone','salary','hire_date','department','is_active'];
+  let html = '<table><thead><tr><th class="row-index-col">#</th>';
+  cols.forEach(c => { html += `<th>${c}</th>`; });
+  html += '</tr></thead><tbody>';
+
+  // Detect duplicate rows
+  const sigCount = {};
+  dataset.forEach(row => {
+    const k = JSON.stringify(row);
+    sigCount[k] = (sigCount[k]||0)+1;
+  });
+
+  dataset.forEach((row, idx) => {
+    const isDup = sigCount[JSON.stringify(row)] > 1;
+    html += `<tr onclick="selectRow(${idx})" id="row-${idx}" ${isDup ? 'style="background:rgba(139,92,246,0.06)"' : ''}>`;
+    html += `<td class="row-index-col">${idx}</td>`;
+    cols.forEach(col => {
+      const val = row[col];
+      let cls = 'issue-ok';
+      if (val === null || val === '') cls = 'issue-missing';
+      else if (col === 'hire_date' && typeof val === 'string' && (val.includes('/') || /^\d{2}-\d{2}-\d{4}/.test(val))) cls = 'issue-format';
+      else if (col === 'age' && typeof val === 'string' && val !== '') cls = 'issue-type';
+      else if (col === 'phone' && typeof val === 'string' && !(/^\d{3}-\d{3}-\d{4}$/.test(val))) cls = (val===''||val===null)?'issue-missing':'issue-format';
+      else if (col === 'email' && typeof val === 'string' && !val.includes('@')) cls = 'issue-format';
+      else if (col === 'age' && typeof val === 'number' && (val < 18 || val > 80)) cls = 'issue-outlier';
+      else if (col === 'salary' && typeof val === 'number' && (val <= 0 || val > 300000)) cls = 'issue-outlier';
+      else if (col === 'department' && typeof val === 'string' && val !== val.charAt(0).toUpperCase()+val.slice(1)) cls = 'issue-inconsistent';
+      else if (col === 'name' && typeof val === 'string' && val !== val.replace(/\b\w/g,c=>c.toUpperCase())) cls = 'issue-inconsistent';
+      else if (col === 'is_active' && typeof val === 'string') cls = 'issue-inconsistent';
+      const display = val===null ? '<span style="color:var(--red);font-style:italic">null</span>' : (val===''?'<span style="color:var(--red);font-style:italic">empty</span>':String(val));
+      html += `<td class="${cls}" title="${col}">${display}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('tableWrap').innerHTML = html;
+
+  // Populate column select
+  const sel = document.getElementById('colName');
+  sel.innerHTML = cols.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function selectRow(idx) {
+  document.querySelectorAll('tr').forEach(r=>r.classList.remove('selected-row'));
+  const row = document.getElementById('row-'+idx);
+  if (row) row.classList.add('selected-row');
+  document.getElementById('rowIndex').value = idx;
+  // Pre-fill column based on first issue found
+  if (state.dataset && state.dataset[idx]) {
+    const row = state.dataset[idx];
+    const cols = ['age','email','phone','salary','hire_date','department','name','is_active'];
+    for (const col of cols) {
+      const v = row[col];
+      if (v === null || v === '' || (col==='hire_date' && typeof v==='string' && v.includes('/'))) {
+        document.getElementById('colName').value = col;
+        break;
+      }
+    }
+  }
+}
+
+function showDone(obs) {
+  const remaining = Object.values(obs.issues_remaining||{}).reduce((a,b)=>a+b,0);
+  const fixed = Object.values(obs.issues_fixed||{}).reduce((a,b)=>a+b,0);
+  const banner = document.getElementById('doneBanner');
+  if (remaining === 0) {
+    banner.innerHTML = '<h3>🎉 All Issues Fixed!</h3><p>The dataset is clean. Episode complete with '+fixed+' issues resolved in '+state.step+' steps.</p>';
+    toast('🎉 Dataset fully cleaned!', 'ok');
+  } else {
+    banner.innerHTML = '<h3>⏱ Max Steps Reached</h3><p>Episode ended after '+state.step+' steps. '+remaining+' issues remaining. '+fixed+' fixed.</p>';
+    toast('Episode ended — max steps reached', 'info2');
+  }
+  banner.style.display = 'block';
+  document.getElementById('autoBtn').disabled = true;
+  document.getElementById('stepBtn').disabled = true;
+}
+
+// ── Log ──
+function addLog(msg, cls='') {
+  const body = document.getElementById('logBody');
+  const now = new Date().toLocaleTimeString('en', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  entry.innerHTML = `<span class="log-time">${now}</span><span class="log-msg ${cls}">${msg}</span>`;
+  body.appendChild(entry);
+  body.scrollTop = body.scrollHeight;
+  // trim
+  while (body.children.length > 200) body.removeChild(body.firstChild);
+}
+
+function clearLog() {
+  document.getElementById('logBody').innerHTML = '';
+}
+
+// ── Loading state ──
+function setLoading(id, on) {
+  const btn = document.getElementById(id);
+  if (on) { btn._orig = btn.innerHTML; btn.innerHTML = '<span class="spinner"></span> Loading…'; btn.disabled = true; }
+  else { btn.innerHTML = btn._orig || btn.innerHTML; btn.disabled = !state.started || state.done; }
+}
+
+// ── Toast ──
+let toastTimer;
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show '+type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = type; }, 3000);
+}
+</script>
+</body>
+</html>

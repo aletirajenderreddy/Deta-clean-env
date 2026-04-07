@@ -1,0 +1,17 @@
+openenv-core
+fastapi
+uvicorn[standard]
+pydantic>=2.0
+openai>=1.0
+python-dotenv
+pandas
+numpy
+faker
+pytest
+httpx
+openpyxl
+scipy
+pyyaml
+aiofiles
+python-multipart
+pyarrow

@@ -1,0 +1,21 @@
+id,name,age,email,phone,salary,hire_date,department,is_active
+1,Alice Johnson,28,alice@example.com,555-1234,72000,2021-03-15,Engineering,true
+2,Bob Smith,,bob.smith,5551235,85000,2020/01/10,Marketing,true
+3,Carol White,35,carol@example.com,555-1236,-5000,2019-07-22,HR,true
+4,David Lee,28,alice@example.com,555-1234,72000,2021-03-15,Engineering,true
+5,,42,eve@example.com,555-1238,90000,2018-11-05,Finance,true
+6,Frank Brown,999,frank@example.com,5559876,67000,03/14/2022,Engineering,
+7,Grace Kim,31,,555-1240,78000,2020-09-18,Marketing,true
+8,Henry Adams,29,henry@example.com,555-1241,,2021-06-30,HR,true
+9,   Iris Chen  ,26,iris@example.com,555-1242,62000,2022-01-15,Engineering,true
+10,Jack Davis,38,jackdavis,555-1243,95000,2017-03-20,Finance,true
+11,Karen White,35,carol@example.com,555-1236,-5000,2019-07-22,HR,true
+12,Liam Green,,liam@example.com,,73000,2021-08-12,Marketing,true
+13,Mia Black,27,mia@example.com,555-1245,69000,2022-03-01,Engineering,true
+14,Noah Wilson,45,noah@example.com,555-1246,110000,2015-05-14,Executive,true
+15,Olivia Brown,thirty,olivia@example.com,555-1247,74000,2021-10-22,HR,true
+16,Paul Martinez,33,paul@example.com,abc-defg,81000,2019-12-03,Engineering,true
+17,Quinn Lee,29,quinn@example.com,555-1249,77000,,IT,true
+18,Rachel Scott,36,rachel@example.com,555-1250,88000,2018-06-19,Finance,false
+19,Sam Taylor,,sam.taylor,555-1251,65000,2022-07-04,Marketing,true
+20,Tina Harris,31,tina@example.com,555-1252,79000,2020-04-11,Engineering,true

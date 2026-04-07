@@ -1,0 +1,49 @@
+# Default cleaning rules config
+# Override per-dataset by posting your own config to /batch/clean
+
+# Remove duplicate rows
+duplicates:
+  remove: true
+  keep: first   # first | last | false (remove all)
+
+# Fill missing values per column (overrides default)
+# Strategies: mean | median | mode | drop | any constant string/number
+fill_missing:
+  age: median
+  salary: median
+  is_active: "unknown"
+  email: "unknown@example.com"
+  phone: "000-000-0000"
+
+# Used when a column is not listed above
+default_fill_strategy: mode
+
+# Drop columns with missing % above this threshold (0.0–1.0)
+drop_columns_missing_above: 0.9
+
+# Explicitly drop columns by name
+drop_columns: []
+
+# Cast types per column (numeric | datetime | boolean)
+cast_types:
+  age: numeric
+  salary: numeric
+  id: numeric
+
+# Text columns to lowercase+strip+collapse spaces
+normalize_text:
+  - name
+  - department
+  - email
+
+# Outlier handling
+outliers:
+  strategy: cap_iqr    # cap_iqr | remove_iqr | cap_zscore | none
+  iqr_factor: 1.5
+  zscore_threshold: 3.0
+  skip_columns:
+    - id
+
+# Drop columns with near-zero variance
+drop_low_variance: false
+variance_threshold: 0.01

@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datacleanenv"
+version = "1.0.0"
+description = "A real-world OpenEnv environment where an AI agent learns to clean messy datasets."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+  { name = "bunnyreddy23231" }
+]
+dependencies = [
+  "openenv-core",
+  "fastapi",
+  "uvicorn[standard]",
+  "pydantic>=2.0",
+  "openai>=1.0",
+  "python-dotenv",
+  "pandas",
+  "numpy",
+  "faker",
+  "pytest",
+  "httpx",
+]
+
+[tool.setuptools]
+packages = ["server"]
+py-modules = ["models", "client", "baseline", "demo"]

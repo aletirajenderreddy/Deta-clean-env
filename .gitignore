@@ -1,0 +1,34 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# ── API Keys & Secrets (NEVER commit these) ──────────────────────────────────
+.env
+.env.*
+!.env.example
+*.env
+secrets.yaml
+secrets.json
+secrets.toml
+*_secrets.*
+.secrets/
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+
+# Local batch outputs and caches
+batch_cleaner/reports/*
+!batch_cleaner/reports/.gitkeep
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
